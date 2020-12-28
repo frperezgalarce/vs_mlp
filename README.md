@@ -1,2 +1,2 @@
-# vsbms_multiple_classes
+# vs_mlp
  model assessment
