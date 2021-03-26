@@ -198,7 +198,16 @@ def get_tensors(data, batch_size):
     xy = data_utils.DataLoader(dataset = xy, batch_size = batch_size)
     return data, x, y, xy
 
-
+def get_tensors(data, batch_size):
+    data.loc[data.label=='ClassA','label'] = 1
+    data.loc[data.label=='ClassB','label'] = 0
+    data.loc[data.label=='Noise','label'] = 0.5
+    target = torch.tensor(data['label'].values.astype(np.float32))
+    x = torch.tensor(data.drop('label', axis = 1).values.astype(np.float32)) 
+    x = f.normalize(x)
+    xy = data_utils.TensorDataset(x, target) 
+    xy = data_utils.DataLoader(dataset = xy, batch_size = batch_size)
+    return data, x, target, xy
 
 def generate_samples(samples, train_dataset, epsilon, option = 2): 
     number_columns = train_dataset.shape[1]
