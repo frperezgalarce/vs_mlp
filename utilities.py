@@ -187,6 +187,74 @@ def get_pca(data, data_test=None, n_components = 2):
     
     return pca_data
 
+def get_tensors(data, batch_size):
+    data['label'] = data['label'].str.replace('ClassA', '1')
+    data['label'] = data['label'].str.replace('ClassB', '0')
+    data['label'] = data['label'].str.replace('Noise', '0.5')
+    target = torch.tensor(data['label'].values.astype(np.float32))
+    x = torch.tensor(target.drop('label', axis = 1).values.astype(np.float32)) 
+    x = f.normalize(x)
+    xy = data_utils.TensorDataset(x, target) 
+    xy = data_utils.DataLoader(dataset = xy, batch_size = batch_size)
+    return data, x, y, xy
+
+
+
+def generate_samples(samples, train_dataset, epsilon, option = 2): 
+    number_columns = train_dataset.shape[1]
+    samples1 = samples*2
+    data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
+
+    
+        #option 1
+    if option == 1:
+        for i in range(samples1):
+            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
+            new_data.columns = train_dataset.columns
+            new_data['PeriodLS']= (np.random.uniform(0.2-epsilon,1.0+epsilon))#-minimum_period)/(maximum_period-minimum_period)
+            new_data['label'] = 'Noise'
+            frames = [data_prior, new_data]
+            data_prior = pd.concat(frames, ignore_index=True)
+
+    if option==2:
+        #option 2
+        for i in range(samples):
+            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
+            new_data.columns = train_dataset.columns
+            new_data['PeriodLS']=(np.random.uniform(0.2-epsilon,0.2))#-minimum_period)/(maximum_period-minimum_period)
+            new_data['label'] = 'Noise'
+            frames = [data_prior, new_data]
+            data_prior = pd.concat(frames, ignore_index=True)
+
+
+        for i in range(samples):    
+            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
+            new_data.columns = train_dataset.columns
+            new_data['PeriodLS']=(np.random.uniform(1.0,1.0+epsilon))
+            new_data['label'] = 'Noise'
+            frames = [data_prior, new_data]
+            data_prior = pd.concat(frames, ignore_index=True)
+
+
+    #option 3
+    if option==3:
+        for i in range(samples):    
+            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) #pd.DataFrame([train_dataset.sample(1000).mean()]).T
+            new_data['PeriodLS']= 1.0
+            new_data['label'] = 'Noise'
+            frames = [data_prior, new_data]
+            data_prior = pd.concat(frames, ignore_index=True)
+
+
+        for i in range(samples):    
+            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
+            new_data.columns = train_dataset.columns
+            new_data['PeriodLS']= 0.2
+            new_data['label'] = 'Noise'
+            frames = [data_prior, new_data]
+            data_prior = pd.concat(frames, ignore_index=True)
+                
+    return data_prior
 
 def get_tsne(data, data_test = None, n_components = 2, n_curves = None):
     if n_curves is not None:
