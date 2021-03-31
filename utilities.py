@@ -187,7 +187,7 @@ def get_pca(data, data_test=None, n_components = 2):
     
     return pca_data
 
-def get_tensors(data, batch_size):
+def get_tensors_old(data, batch_size):
     data['label'] = data['label'].str.replace('ClassA', '1')
     data['label'] = data['label'].str.replace('ClassB', '0')
     data['label'] = data['label'].str.replace('Noise', '0.5')
@@ -196,17 +196,21 @@ def get_tensors(data, batch_size):
     x = f.normalize(x)
     xy = data_utils.TensorDataset(x, target) 
     xy = data_utils.DataLoader(dataset = xy, batch_size = batch_size)
+
+    print('Shape tensor: ', list(xy.size()))
     return data, x, y, xy
 
 def get_tensors(data, batch_size):
+    print('____get_tensor_function____')
     data.loc[data.label=='ClassA','label'] = 1
     data.loc[data.label=='ClassB','label'] = 0
     data.loc[data.label=='Noise','label'] = 0.5
     target = torch.tensor(data['label'].values.astype(np.float32))
     x = torch.tensor(data.drop('label', axis = 1).values.astype(np.float32)) 
     x = f.normalize(x)
-    xy = data_utils.TensorDataset(x, target) 
-    xy = data_utils.DataLoader(dataset = xy, batch_size = batch_size)
+    xy_ = data_utils.TensorDataset(x, target) 
+    xy = data_utils.DataLoader(dataset = xy_, batch_size = batch_size)
+    print('shape tensor: ', (x.size()))
     return data, x, target, xy
 
 def generate_samples(samples, train_dataset, epsilon, option = 2): 

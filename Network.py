@@ -63,13 +63,17 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
     locked_masks = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
     locked_masks2 = {n: torch.abs(w) < EPS2 for n, w in net.named_parameters() if n.endswith('weight')}
 
+    print('Epochs: ', str(num_epochs_prior))
+
     for epoch in range(num_epochs_prior):
+        print('Epoch: ', str(epoch))
         epoch_loss = 0.0
         running_loss = 0.0
         epoch_loss_prior = 0.0    
         running_loss_prior = 0.0
         
         for item1, item2 in zip(train_loader, cycle(train_loader_prior)):
+            #print('Training')
             star_prior, labels_prior = item2
             star, labels = item1
             
@@ -105,7 +109,7 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
             
         hist_train.append(running_loss/len(train_loader))    
         print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss/len(train_loader)))
-        
+        #print('ending training')
         epoch_loss = 0.0
         running_loss = 0.0
         for i, (star, labels) in enumerate(val_loader):  
@@ -125,7 +129,10 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
             running_loss += loss.item()
         
         print('validating:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss / len(val_loader)))
+        
         hist_val.append(running_loss / len(val_loader))
+
+    return hist_val, hist_train
 
 
 def get_results(net, data, input_size):
