@@ -70,7 +70,7 @@ for epsilon in [0.1, 0.05, 0.025, 0.15]:
                             test_dataset_pred = test_dataset.copy()
                             train_dataset_pred = train_dataset.copy()
                             try:
-                                data_prior = ut.generate_samples(samples, train_dataset, epsilon,  option = opt)
+                                data_prior = ut.generate_samples_2D(samples, train_dataset)
 
                                 train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.1, random_state=42)
 
@@ -98,6 +98,6 @@ for epsilon in [0.1, 0.05, 0.025, 0.15]:
                                 acc_test =nn.get_results(net, test_loader, input_size)
                                 results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                 pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('07-04-2021-results.csv')
+                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('07-04-2021-results_2d.csv')
                             except: 
                                 print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

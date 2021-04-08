@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import random 
 from matplotlib import pyplot as plt
-
+from scipy.stats import multivariate_normal as normal
 from sklearn import decomposition
 from sklearn import manifold
 from scipy import stats
@@ -314,3 +314,43 @@ def plot_representations(data, labels, ax, n_curves = None):
     scatter = ax.scatter(data[:, 0], data[:, 1], c = labels, alpha =0.5)
     handles, labels = scatter.legend_elements()
     legend = ax.legend(handles = handles, labels = labels)
+
+
+def generate_samples_2D(samples, train_dataset):
+
+    data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
+
+    class_filtered_upper = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS>0.9)]
+    class_filtered_lower = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS<0.3)]
+
+    mean_upper = (class_filtered_upper[['Amplitude', 'PeriodLS']].mean())
+    cov_upper =  (class_filtered_upper[['Amplitude', 'PeriodLS']].cov())
+
+    samples_upper = pd.DataFrame(np.random.multivariate_normal(mean_upper, cov_upper, 5000), columns=['Amplitude', 'PeriodLS'])
+
+
+    mean_lower = (class_filtered_lower[['Amplitude', 'PeriodLS']].mean())
+    cov_lower =  (class_filtered_lower[['Amplitude', 'PeriodLS']].cov())
+
+    samples_lower = pd.DataFrame(np.random.multivariate_normal(mean_lower, cov_lower, 5000), columns=['Amplitude', 'PeriodLS'])
+
+
+    new_data_upper = pd.DataFrame(0, index=np.arange(samples), columns=train_dataset.columns) 
+    new_data_upper.columns = train_dataset.columns
+    new_data_upper['PeriodLS']= samples_upper['PeriodLS']
+    new_data_upper['Amplitude']= samples_upper['Amplitude']
+    new_data_upper['label'] = 'Noise'
+    
+    new_data_lower = pd.DataFrame(0, index=np.arange(samples), columns=train_dataset.columns) 
+    new_data_lower.columns = train_dataset.columns
+    new_data_lower['PeriodLS']= samples_upper['PeriodLS']
+    new_data_lower['Amplitude']= samples_upper['Amplitude']
+    new_data_lower['label'] = 'Noise'
+    
+    
+    frames = [new_data_lower, new_data_upper]
+    data_prior = pd.concat(frames, ignore_index=True)
+
+
+                
+    return data_prior
