@@ -53,11 +53,11 @@ torch.backends.cudnn.benchmark = True
 
 
 #for epsilon in [0.1, 0.05, 0.025, 0.15]:
-for batch_size in [256, 512]:
-    for hidden_size in [4]:
+for batch_size in [128, 256, 512]:
+    for hidden_size in [4, 8]:
         for aux_loss_activated in [True, False]:
             for EPS1 in [1e-3,1e-2, 1e-4, 1e-5]:
-                for n in [10000, 100000]:
+                for n in [100000, 200000,300000]:
                     for opt in [1]:
                         train_dataset, test_dataset = ut.load_files(dataset=1)
                         input_size = train_dataset.shape[1]-1
