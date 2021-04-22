@@ -54,7 +54,7 @@ torch.backends.cudnn.benchmark = True
 
 for epsilon in [0.1, 0.05, 0.025, 0.15]:
     for batch_size in [256, 512]:
-        for hidden_size in [150]:
+        for hidden_size in [4]:
             for aux_loss_activated in [True, False]:
                 for EPS1 in [1e-3,1e-2, 1e-4, 1e-5]:
                     for n in [10000, 100000]:
@@ -92,12 +92,13 @@ for epsilon in [0.1, 0.05, 0.025, 0.15]:
                                 #EPS1 = 1e-3
                                 EPS2 = 1e-6
 
-                                hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learning_rate, input_size)
+                                hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, 
+                                EPS1, EPS2, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
                                 acc_train = nn.get_results(net, train_loader, input_size)
                                 acc_test =nn.get_results(net, test_loader, input_size)
                                 results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                 pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('07-04-2021-results.csv')
+                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('17-04-2021-results.csv')
                             except: 
                                 print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

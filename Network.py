@@ -59,7 +59,7 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
 
     criterion = nn.CrossEntropyLoss()  
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
-    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate)   
+    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate*1.5)   
     locked_masks = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
     locked_masks2 = {n: torch.abs(w) < EPS2 for n, w in net.named_parameters() if n.endswith('weight')}
 

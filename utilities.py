@@ -326,13 +326,13 @@ def generate_samples_2D(samples, train_dataset):
     mean_upper = (class_filtered_upper[['Amplitude', 'PeriodLS']].mean())
     cov_upper =  (class_filtered_upper[['Amplitude', 'PeriodLS']].cov())
 
-    samples_upper = pd.DataFrame(np.random.multivariate_normal(mean_upper, cov_upper, 5000), columns=['Amplitude', 'PeriodLS'])
+    samples_upper = pd.DataFrame(np.random.multivariate_normal(mean_upper, cov_upper, samples), columns=['Amplitude', 'PeriodLS'])
 
 
     mean_lower = (class_filtered_lower[['Amplitude', 'PeriodLS']].mean())
     cov_lower =  (class_filtered_lower[['Amplitude', 'PeriodLS']].cov())
 
-    samples_lower = pd.DataFrame(np.random.multivariate_normal(mean_lower, cov_lower, 5000), columns=['Amplitude', 'PeriodLS'])
+    samples_lower = pd.DataFrame(np.random.multivariate_normal(mean_lower, cov_lower, samples), columns=['Amplitude', 'PeriodLS'])
 
 
     new_data_upper = pd.DataFrame(0, index=np.arange(samples), columns=train_dataset.columns) 
