@@ -99,6 +99,6 @@ for batch_size in [128, 256, 512]:
                             acc_test =nn.get_results(net, test_loader, input_size)
                             results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                             pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('20-04-2021-results_2d.csv')
+                                'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('21-04-2021-results_2d.csv')
                         except: 
                             print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

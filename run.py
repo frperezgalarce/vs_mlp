@@ -99,6 +99,6 @@ for epsilon in [0.1, 0.05, 0.025, 0.15]:
                                 acc_test =nn.get_results(net, test_loader, input_size)
                                 results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                 pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('17-04-2021-results.csv')
+                                 'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('09-12-2021-results.csv')
                             except: 
                                 print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
