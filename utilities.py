@@ -19,7 +19,7 @@ from scipy.stats import multivariate_normal as normal
 from sklearn import decomposition
 from sklearn import manifold
 from scipy import stats
-
+from sklearn.utils import resample
 def load_files(dataset=1): 
     number = dataset
     fileTrain = '/home/franciscoperez/Documents/GitHub/data/BIASEDFATS/Train_rrlyr-'+str(number)+'.csv'
@@ -354,3 +354,19 @@ def generate_samples_2D(samples, train_dataset):
 
                 
     return data_prior
+
+def down_sampling(df):
+    df_a = df[df.label == 'ClassA']
+    df_b = df[df.label == 'ClassB']
+
+    if df_a.shape[0] > df_b.shape[0]:
+        df_majority = df_a
+        df_minority = df_b
+    else:
+        df_majority = df_b
+        df_minority = df_a
+
+    df_majority_downsampled = resample(df_majority, replace=False,
+                                       n_samples=df_minority.shape[0], random_state=123)
+    df_downsampled = pd.concat([df_majority_downsampled, df_minority])
+    return df_downsampled

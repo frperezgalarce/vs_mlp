@@ -49,9 +49,10 @@ class Net(nn.Module):
         return out3, out2, out1
 
 
-def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learning_rate, 
-            input_size, num_epochs_prior=1000, aux_loss_activated=True): 
-
+def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate, 
+            input_size, num_epochs_prior=5000, aux_loss_activated=True): 
+    patience = 5
+    trigger_times = 0
     loss_prior = torch.tensor(0)
     hist_train = []
     hist_val = []
@@ -59,17 +60,19 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
 
     criterion = nn.CrossEntropyLoss()  
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
-    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate*1.5)   
-    locked_masks = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
-    locked_masks2 = {n: torch.abs(w) < EPS2 for n, w in net.named_parameters() if n.endswith('weight')}
+    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate*1.2)   
+    locked_masks = {n: torch.abs(w) > EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
+    locked_masks2 = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
 
     print('Epochs: ', str(num_epochs_prior))
-
+    the_current_loss = 0.0
     for epoch in range(num_epochs_prior):
         print('Epoch: ', str(epoch))
-        epoch_loss = 0.0
+        
+        the_last_loss = the_current_loss
+        the_current_loss = 0.0
         running_loss = 0.0
-        epoch_loss_prior = 0.0    
+        #epoch_loss_prior = 0.0    
         running_loss_prior = 0.0
         
         for item1, item2 in zip(train_loader, cycle(train_loader_prior)):
@@ -82,10 +85,14 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
             optimizer.zero_grad()  
             outputs, _, _ = net(star)
             loss = criterion(outputs, labels.long())      
-            loss.backward()
+            loss.backward()            
+            for n, w in net.named_parameters():                                                                                                                                                                           
+                if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
+                    w.grad[locked_masks2[n]] = 0 
+            
             optimizer.step()
             running_loss += loss.item()
-            
+         
             if aux_loss_activated:
                 star_prior = Variable(star_prior.view(-1, input_size)).cuda()
                 labels_prior = Variable(labels_prior).cuda()
@@ -99,19 +106,18 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
                 loss_prior.backward()
                 
                 for n, w in net.named_parameters():                                                                                                                                                                           
-                    if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
-                        w.grad[locked_masks2[n]] = 0 
-                    
+                    if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
+                        w.grad[locked_masks[n]] = 0 
                     
                 optimizer_prior.step()
-                epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
+                #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
                 running_loss_prior += loss_prior.item()
             
-        hist_train.append(running_loss/len(train_loader))    
-        print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss/len(train_loader)))
+        hist_train.append(running_loss)    
+        print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss))
         #print('ending training')
-        epoch_loss = 0.0
-        running_loss = 0.0
+        
+        running_loss_val = 0.0
         for i, (star, labels) in enumerate(val_loader):  
             
             star = Variable(star.view(-1, input_size)).cuda()
@@ -126,12 +132,32 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, EPS2, learnin
                     w.grad[locked_masks[n]] = 0 
             
             optimizer.step()
-            running_loss += loss.item()
+            running_loss_val += loss.item()
         
-        print('validating:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss / len(val_loader)))
+       
+        print('validating:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss_val))
         
         hist_val.append(running_loss / len(val_loader))
 
+        
+         # Early stopping
+        the_current_loss = running_loss_val
+
+        if ((epoch+1)%10==0):  
+            print('The current loss:', the_current_loss)
+            print('the_last_loss:', the_last_loss)
+            if the_current_loss > the_last_loss:
+                trigger_times += 1
+                print('trigger times:', trigger_times)
+
+                if trigger_times >= patience:
+                    print('Early stopping!\nStart to test process.')
+                    return hist_val, hist_train
+
+            else:
+                print('trigger times: 0')
+                trigger_times = 0
+            
     return hist_val, hist_train
 
 
