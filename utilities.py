@@ -190,7 +190,7 @@ def get_pca(data, data_test=None, n_components = 2):
 def get_tensors_old(data, batch_size):
     data['label'] = data['label'].str.replace('ClassA', '1')
     data['label'] = data['label'].str.replace('ClassB', '0')
-    data['label'] = data['label'].str.replace('Noise', '0.5')
+    data['label'] = data['label'].str.replace('Noise', '1')
     target = torch.tensor(data['label'].values.astype(np.float32))
     x = torch.tensor(target.drop('label', axis = 1).values.astype(np.float32)) 
     x = f.normalize(x)
@@ -204,7 +204,7 @@ def get_tensors(data, batch_size):
     print('____get_tensor_function____')
     data.loc[data.label=='ClassA','label'] = 1
     data.loc[data.label=='ClassB','label'] = 0
-    data.loc[data.label=='Noise','label'] = 0.5
+    data.loc[data.label=='Noise','label'] = 1
     target = torch.tensor(data['label'].values.astype(np.float32))
     x = torch.tensor(data.drop('label', axis = 1).values.astype(np.float32)) 
     x = f.normalize(x)

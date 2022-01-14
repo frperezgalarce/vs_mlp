@@ -50,19 +50,19 @@ class Net(nn.Module):
 
 
 def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate, 
-            input_size, num_epochs_prior=5000, aux_loss_activated=True): 
-    patience = 5
+            input_size, num_epochs_prior=3000, aux_loss_activated=True): 
+    patience = 10
     trigger_times = 0
     loss_prior = torch.tensor(0)
     hist_train = []
     hist_val = []
     aux_loss_behaviour = []
-
-    criterion = nn.CrossEntropyLoss()  
+    criterion = nn.CrossEntropyLoss() 
+    criterion2 = nn.L1Loss(reduction='mean') 
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
-    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate*1.2)   
-    locked_masks = {n: torch.abs(w) > EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
-    locked_masks2 = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
+    optimizer_prior = torch.optim.Adam(net.parameters(), lr=learning_rate*0.5)   
+    locked_masks2 = {n: torch.abs(w) > EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
+    locked_masks = {n: torch.abs(w) < EPS1 for n, w in net.named_parameters() if n.endswith('weight')}
 
     print('Epochs: ', str(num_epochs_prior))
     the_current_loss = 0.0
@@ -79,19 +79,28 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate
             #print('Training')
             star_prior, labels_prior = item2
             star, labels = item1
-            
             star = Variable(star.view(-1, input_size)).cuda()
             labels = Variable(labels).cuda()
             optimizer.zero_grad()  
             outputs, _, _ = net(star)
             loss = criterion(outputs, labels.long())      
-            loss.backward()            
-            for n, w in net.named_parameters():                                                                                                                                                                           
-                if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
-                    w.grad[locked_masks2[n]] = 0 
-            
-            optimizer.step()
-            running_loss += loss.item()
+
+            loss.backward()
+            if aux_loss_activated:
+                for n, w in net.named_parameters():                                                                                                                                                                           
+                    if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
+                        w.grad[locked_masks2[n]] = 0
+                        #print(n) 
+                        #print(w)
+                        #print('mask L1')
+                        #print(np.sum(locked_masks2[n]))
+                        
+                optimizer.step()
+                running_loss += loss.item()    
+            else: 
+                optimizer.step()
+                running_loss += loss.item()
+
          
             if aux_loss_activated:
                 star_prior = Variable(star_prior.view(-1, input_size)).cuda()
@@ -100,15 +109,22 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate
                 outputs_prior, _, _ = net(star_prior)
                 #print("-------------------before----------------------")
                 aux_loss_behaviour.append(loss_prior.item())
+                #print(outputs_prior)
+                #print(labels_prior)
+                #print(labels_prior.long())
                 loss_prior = criterion(outputs_prior, labels_prior.long()) #custom_loss_auxiliar(outputs_prior)      
+                print(loss_prior.item())
                 #print("-------------------later-----------------------")
                 aux_loss_behaviour.append(loss_prior.item())
                 loss_prior.backward()
                 
                 for n, w in net.named_parameters():                                                                                                                                                                           
                     if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
-                        w.grad[locked_masks[n]] = 0 
-                    
+                        w.grad[locked_masks[n]] = 0
+                        #print(n) 
+                        #print(w)
+                        #print('mask L2') 
+                        #print(locked_masks[n])
                 optimizer_prior.step()
                 #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
                 running_loss_prior += loss_prior.item()
