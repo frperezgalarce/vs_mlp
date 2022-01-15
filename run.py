@@ -43,7 +43,7 @@ torch.backends.cudnn.benchmark = True
 
 for epsilon in [0.2]:
     for batch_size in [256]:
-        for hidden_size in [5]:
+        for hidden_size in [50]:
             for EPS1 in [0.3, 0.2, 0.1, 0.05]:
                 for n in [10000,50000, 100000]:
                     for aux_loss_activated in [True, False]:
@@ -74,9 +74,9 @@ for epsilon in [0.2]:
                                 try:
                                     data_prior = ut.generate_samples(samples, train_dataset, epsilon,  option = opt)
 
-                                    train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.1, random_state=42)
+                                    train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2, random_state=42)
 
-                                    train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.1, random_state=42)
+                                    train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2, random_state=42)
                                     print(train_dataset_prior.columns)
                                     _, _, train_target_prior, train_loader_prior = ut.get_tensors(train_dataset_prior, batch_size)
                                     _, _, val_target_prior, val_loader_prior     = ut.get_tensors(val_dataset_prior, batch_size)
@@ -89,7 +89,7 @@ for epsilon in [0.2]:
                                     net = Net(input_size, hidden_size, hidden_size, num_classes)
                                     net.cuda()
 
-                                    hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, 
+                                    hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                     EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
                                     acc_train = nn.get_results(net, train_loader, input_size)

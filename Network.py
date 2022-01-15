@@ -49,10 +49,11 @@ class Net(nn.Module):
         return out3, out2, out1
 
 
-def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate, 
+def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, learning_rate, 
             input_size, num_epochs_prior=500, aux_loss_activated=True): 
     patience = 10
     trigger_times = 0
+    verbose = False
     loss_prior = torch.tensor(0)
     hist_train = []
     hist_val = []
@@ -125,13 +126,13 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate
                         #print(n) 
                         #print(w)
                         #print('mask L2') 
-                    
-                    print('sum mask2 - L1: ', str(locked_masks2['fc1.weight'].sum()))
-                    print('sum mask2 - L2: ', str(locked_masks2['fc2.weight'].sum()))
-                    print('sum mask2 - L3: ', str(locked_masks2['fc3.weight'].sum()))
-                    print('sum mask1 - L1: ', str(locked_masks['fc1.weight'].sum()))
-                    print('sum mask1 - L2: ', str(locked_masks['fc2.weight'].sum()))
-                    print('sum mask1 - L3: ', str(locked_masks['fc3.weight'].sum()))
+                    if verbose:
+                        print('sum mask2 - L1: ', str(locked_masks2['fc1.weight'].sum()))
+                        print('sum mask2 - L2: ', str(locked_masks2['fc2.weight'].sum()))
+                        print('sum mask2 - L3: ', str(locked_masks2['fc3.weight'].sum()))
+                        print('sum mask1 - L1: ', str(locked_masks['fc1.weight'].sum()))
+                        print('sum mask1 - L2: ', str(locked_masks['fc2.weight'].sum()))
+                        print('sum mask1 - L3: ', str(locked_masks['fc3.weight'].sum()))
                     optimizer_prior.step()
                     #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
                     running_loss_prior += loss_prior.item()
@@ -235,6 +236,10 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate
                 print('trigger times: 0')
                 trigger_times = 0
             
+            acc_train = get_results(net, train_loader, input_size)
+            acc_val =get_results(net, val_loader, input_size)
+            acc_test = get_results(net, test_loader, input_size)
+
     return hist_val, hist_train
 
 
