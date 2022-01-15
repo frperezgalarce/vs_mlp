@@ -41,9 +41,9 @@ torch.backends.cudnn.benchmark = True
 
 
 
-for epsilon in [0.1, 0.15, 0.2]:
+for epsilon in [0.2]:
     for batch_size in [256]:
-        for hidden_size in [50]:
+        for hidden_size in [5]:
             for EPS1 in [0.3, 0.2, 0.1, 0.05]:
                 for n in [10000,50000, 100000]:
                     for aux_loss_activated in [True, False]:
@@ -96,7 +96,7 @@ for epsilon in [0.1, 0.15, 0.2]:
                                     acc_test =nn.get_results(net, test_loader, input_size)
                                     results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('03-01-2022-results.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('15-01-2022-results.csv')
                                 except Exception as error:
                                     print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

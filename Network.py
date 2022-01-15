@@ -50,7 +50,7 @@ class Net(nn.Module):
 
 
 def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate, 
-            input_size, num_epochs_prior=3000, aux_loss_activated=True): 
+            input_size, num_epochs_prior=500, aux_loss_activated=True): 
     patience = 10
     trigger_times = 0
     loss_prior = torch.tensor(0)
@@ -75,62 +75,123 @@ def train(net, train_loader, train_loader_prior, val_loader, EPS1, learning_rate
         #epoch_loss_prior = 0.0    
         running_loss_prior = 0.0
         
-        for item1, item2 in zip(train_loader, cycle(train_loader_prior)):
-            #print('Training')
-            star_prior, labels_prior = item2
-            star, labels = item1
-            star = Variable(star.view(-1, input_size)).cuda()
-            labels = Variable(labels).cuda()
-            optimizer.zero_grad()  
-            outputs, _, _ = net(star)
-            loss = criterion(outputs, labels.long())      
-
-            loss.backward()
-            if aux_loss_activated:
+        if aux_loss_activated:
+            for item1, (star, labels) in enumerate(train_loader): 
+            #for item1, item2 in zip(train_loader, cycle(train_loader_prior)):
+                #print('Training')
+             #   star_prior, labels_prior = item2
+             #   star, labels = item1
+                star = Variable(star.view(-1, input_size)).cuda()
+                labels = Variable(labels).cuda()
+                optimizer.zero_grad()  
+                outputs, _, _ = net(star)
+                loss = criterion(outputs, labels.long())      
+                loss.backward()
+                #if aux_loss_activated:
                 for n, w in net.named_parameters():                                                                                                                                                                           
                     if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
                         w.grad[locked_masks2[n]] = 0
-                        #print(n) 
-                        #print(w)
-                        #print('mask L1')
-                        #print(np.sum(locked_masks2[n]))
-                        
+                            #print(n) 
+                            #print(w)
+                            #print('mask L1')
+                            #print(np.sum(locked_masks2[n]))
+                            
                 optimizer.step()
                 running_loss += loss.item()    
-            else: 
-                optimizer.step()
-                running_loss += loss.item()
+                #else: 
+                #    optimizer.step()
+                #    running_loss += loss.item()
 
-         
-            if aux_loss_activated:
-                star_prior = Variable(star_prior.view(-1, input_size)).cuda()
-                labels_prior = Variable(labels_prior).cuda()
-                optimizer_prior.zero_grad()  # zero the gradient buffer
-                outputs_prior, _, _ = net(star_prior)
-                #print("-------------------before----------------------")
-                aux_loss_behaviour.append(loss_prior.item())
-                #print(outputs_prior)
-                #print(labels_prior)
-                #print(labels_prior.long())
-                loss_prior = criterion(outputs_prior, labels_prior.long()) #custom_loss_auxiliar(outputs_prior)      
-                print(loss_prior.item())
-                #print("-------------------later-----------------------")
-                aux_loss_behaviour.append(loss_prior.item())
-                loss_prior.backward()
-                
-                for n, w in net.named_parameters():                                                                                                                                                                           
-                    if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
-                        w.grad[locked_masks[n]] = 0
+                for item1, (star_prior, labels_prior) in enumerate(train_loader_prior):
+                #if aux_loss_activated:
+                    star_prior = Variable(star_prior.view(-1, input_size)).cuda()
+                    labels_prior = Variable(labels_prior).cuda()
+                    optimizer_prior.zero_grad()  # zero the gradient buffer
+                    outputs_prior, _, _ = net(star_prior)
+                    #print("-------------------before----------------------")
+                    aux_loss_behaviour.append(loss_prior.item())
+                    #print(outputs_prior)
+                    #print(labels_prior)
+                    #print(labels_prior.long())
+                    loss_prior = criterion2(outputs_prior[:,0], labels_prior) #criterion(outputs_prior, labels_prior.long()) ...cambiar Noise por 1.0      
+                    #print(loss_prior.item())
+                    #print("-------------------later-----------------------")
+                    aux_loss_behaviour.append(loss_prior.item())
+                    loss_prior.backward()
+                    
+                    for n, w in net.named_parameters():                                                                                                                                                                           
+                        if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
+                            w.grad[locked_masks[n]] = 0
                         #print(n) 
                         #print(w)
                         #print('mask L2') 
-                        #print(locked_masks[n])
-                optimizer_prior.step()
-                #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
-                running_loss_prior += loss_prior.item()
-            
+                    
+                    print('sum mask2 - L1: ', str(locked_masks2['fc1.weight'].sum()))
+                    print('sum mask2 - L2: ', str(locked_masks2['fc2.weight'].sum()))
+                    print('sum mask2 - L3: ', str(locked_masks2['fc3.weight'].sum()))
+                    print('sum mask1 - L1: ', str(locked_masks['fc1.weight'].sum()))
+                    print('sum mask1 - L2: ', str(locked_masks['fc2.weight'].sum()))
+                    print('sum mask1 - L3: ', str(locked_masks['fc3.weight'].sum()))
+                    optimizer_prior.step()
+                    #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
+                    running_loss_prior += loss_prior.item()
+        else: 
+            for item1, (star, labels) in enumerate(train_loader): 
+            #for item1, item2 in zip(train_loader, cycle(train_loader_prior)):
+                #print('Training')
+             #   star_prior, labels_prior = item2
+             #   star, labels = item1
+                star = Variable(star.view(-1, input_size)).cuda()
+                labels = Variable(labels).cuda()
+                optimizer.zero_grad()  
+                outputs, _, _ = net(star)
+                loss = criterion(outputs, labels.long())      
+                loss.backward()
+                #if aux_loss_activated:
+                #for n, w in net.named_parameters():                                                                                                                                                                           
+                #    if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
+                #        w.grad[locked_masks2[n]] = 0
+                            #print(n) 
+                            #print(w)
+                            #print('mask L1')
+                            #print(np.sum(locked_masks2[n]))
+                            
+                optimizer.step()
+                running_loss += loss.item()    
+                #else: 
+                #    optimizer.step()
+                #    running_loss += loss.item()
+
+                #for item1, (star_prior, labels_prior) in enumerate(train_loader_prior):
+                #if aux_loss_activated:
+                #    star_prior = Variable(star_prior.view(-1, input_size)).cuda()
+                #    labels_prior = Variable(labels_prior).cuda()
+                #    optimizer_prior.zero_grad()  # zero the gradient buffer
+                #    outputs_prior, _, _ = net(star_prior)
+                    #print("-------------------before----------------------")
+                #    aux_loss_behaviour.append(loss_prior.item())
+                    #print(outputs_prior)
+                    #print(labels_prior)
+                    #print(labels_prior.long())
+                #    loss_prior = criterion2(outputs_prior[:,0], labels_prior) #criterion(outputs_prior, labels_prior.long()) ...cambiar Noise por 1.0      
+                #    print(loss_prior.item())
+                    #print("-------------------later-----------------------")
+                #    aux_loss_behaviour.append(loss_prior.item())
+                #    loss_prior.backward()
+                    
+                #    for n, w in net.named_parameters():                                                                                                                                                                           
+                #        if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
+                #            w.grad[locked_masks[n]] = 0
+                            #print(n) 
+                            #print(w)
+                            #print('mask L2') 
+                            #print(locked_masks[n])
+                #    optimizer_prior.step()
+                    #epoch_loss_prior += outputs_prior.shape[0] * loss_prior.item()      
+                #    running_loss_prior += loss_prior.item()
+                
         hist_train.append(running_loss)    
-        print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss))
+        print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss), '-- aux loss: ', str(running_loss_prior))
         #print('ending training')
         
         running_loss_val = 0.0
