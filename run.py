@@ -21,37 +21,31 @@ import sys
 import utilities as ut
 from Network import Net
 import Network as nn
-SEED = 1234
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
 
 
 results = []
 num_classes = 2
 
-learning_rate = 0.0001
-samples = 10000
+learning_rate = 0.001
+samples = 1000
 
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-torch.backends.cudnn.benchmark = True
+
 
 
 
 for epsilon in [0.2]:
+
     for batch_size in [256]:
-        for hidden_size in [50]:
-            for EPS1 in [0.3, 0.2, 0.1, 0.05]:
-                for n in [10000,50000, 100000]:
-                    for aux_loss_activated in [True, False]:
+        for hidden_size in [100]:
+            for EPS1 in [0.1]:
+                for n in [100000]:
+                    for aux_loss_activated in [True]:
                         for opt in [2]:
-                            for t in range(10):
+                            for t in range(6):
                                 train_dataset, test_dataset = ut.load_files(dataset=1)
                                 input_size = train_dataset.shape[1]-1
                                 
+
                                 if n < 50000:
                                     train_dataset = ut.down_sampling(train_dataset)
                                     train_dataset = train_dataset.sample(n)
@@ -96,7 +90,7 @@ for epsilon in [0.2]:
                                     acc_test =nn.get_results(net, test_loader, input_size)
                                     results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('15-01-2022-results.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('21-01-2022-resultsc.csv')
                                 except Exception as error:
                                     print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
