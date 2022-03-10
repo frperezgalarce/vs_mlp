@@ -34,7 +34,6 @@ samples = 1000
 
 
 for epsilon in [0.2]:
-
     for batch_size in [256]:
         for hidden_size in [100]:
             for EPS1 in [0.1]:

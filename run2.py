@@ -29,35 +29,19 @@ torch.cuda.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 
 
+
 results = []
-
-n = 5000#train_dataset.shape[0] 
-epsilon = 0.1
-
-hidden_size = 500
-hidden_size2 = 500
 num_classes = 2
-num_epochs = 200
-batch_size = 128
+
 learning_rate = 0.001
-learning_rate2 = 0.001
-regularization = False
-add_DR_based_data = True
-
-samples = 10000
-
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-torch.backends.cudnn.benchmark = True
-
-
-
+samples = 2000
+epsilon=0
 #for epsilon in [0.1, 0.05, 0.025, 0.15]:
 for batch_size in [256]:
     for hidden_size in [100]:
-        for aux_loss_activated in [True, False]:
+        for aux_loss_activated in [True]:
             for EPS1 in [0.1]:
-                for n in [5000, 10000, 50000, 100000]:
+                for n in [100000]:
                     for opt in [1]:
                         for t in range(10):
                             train_dataset, test_dataset = ut.load_files(dataset=1)
@@ -85,7 +69,7 @@ for batch_size in [256]:
                             train_dataset_pred = train_dataset.copy()
 
                             try:
-                                data_prior = ut.generate_samples_2D(samples, train_dataset)
+                                data_prior = ut.generate_samples_2D(samples, train_dataset, distribution='uniform')
 
                                 train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2, random_state=42)
 
@@ -109,6 +93,7 @@ for batch_size in [256]:
                                 acc_test =nn.get_results(net, test_loader, input_size)
                                 results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                 pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                    'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('31-01-2022-results_2d.csv')
-                            except: 
-                                print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
+                                    'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('07-03-2022-results_2d.csv')
+                            except Exception as e:
+                                print(e) 
+                                print(str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
