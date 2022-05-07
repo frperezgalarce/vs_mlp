@@ -32,21 +32,19 @@ torch.backends.cudnn.deterministic = True
 
 results = []
 num_classes = 2
-
 learning_rate = 0.001
-samples = 2000
+samples = 5000
 epsilon=0
 #for epsilon in [0.1, 0.05, 0.025, 0.15]:
 for batch_size in [256]:
     for hidden_size in [100]:
         for aux_loss_activated in [True]:
-            for EPS1 in [0.1]:
-                for n in [100000]:
+            for EPS1 in [0.005]:
+                for n in [5000, 10000, 50000, 100000]:
                     for opt in [1]:
-                        for t in range(10):
+                        for t in range(15):
                             train_dataset, test_dataset = ut.load_files(dataset=1)
                             input_size = train_dataset.shape[1]-1
-                            
 
                             if n < 50000:
                                 train_dataset = ut.down_sampling(train_dataset)
@@ -60,7 +58,7 @@ for batch_size in [256]:
                                 trainig_dataset_b = train_dataset[~(train_dataset.label=='ClassA')].sample(n2)
                                 train_dataset = pd.concat([trainig_dataset_a, trainig_dataset_b])
                             
-                            train_dataset, test_dataset = ut.delete_outliers(train_dataset, test_dataset)
+                            train_dataset, _ = ut.delete_outliers(train_dataset, test_dataset)
 
                             train_dataset = ut.sort_columns(train_dataset)
                             test_dataset = ut.sort_columns(test_dataset)
@@ -89,11 +87,12 @@ for batch_size in [256]:
                                 hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                 EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
-                                acc_train = nn.get_results(net, train_loader, input_size)
-                                acc_test =nn.get_results(net, test_loader, input_size)
-                                results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
-                                pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                    'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('07-03-2022-results_2d.csv')
+                                acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
+                                acc_test, recall_test, f1_test  = nn.get_results(net, test_loader, input_size)
+                                results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
+                                pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test',
+                                     'epsilon', 'batch_size', 'hidden_size',
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('03-05-2022-results_2d.csv')
                             except Exception as e:
                                 print(e) 
                                 print(str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
