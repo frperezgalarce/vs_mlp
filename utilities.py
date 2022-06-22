@@ -26,14 +26,16 @@ from scipy.stats import uniform
 from sklearn.metrics import roc_curve, roc_auc_score
 
 
-def normalize(df_train, df_test):
+def normalize(df_train, df_test, df_prior):
     for col in df_train.columns: 
         if col!='label': 
             scaler = StandardScaler()
             scaler.fit(np.asanyarray(df_train[col]).reshape(-1, 1))
             df_train[col] = scaler.transform(np.asanyarray(df_train[col]).reshape(-1, 1))
             df_test[col] = scaler.transform(np.asanyarray(df_test[col]).reshape(-1, 1))
-    return df_train, df_test
+            if df_prior[col].var() > 0:
+                df_prior[col] = scaler.transform(np.asanyarray(df_prior[col]).reshape(-1, 1))
+    return df_train, df_test, df_prior
 
 def load_files(dataset=1, subclass=''): 
     number = dataset
@@ -61,19 +63,18 @@ def delete_outliers(train_dataset, test_dataset):
     train_dataset_z=(train_dataset-train_dataset.mean())/train_dataset.std()
     z_scores = stats.zscore(train_dataset_z)
     abs_z_scores = np.abs(z_scores)
-    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    filtered_entries = (abs_z_scores < 6).all(axis=1)
     train_dataset['label'] = label
     train_dataset = train_dataset[filtered_entries]
-    print(train_dataset.shape)
+
     label = test_dataset['label']
     del test_dataset['label']
-    print(test_dataset.shape)
     test_dataset_z=(test_dataset-test_dataset.mean())/test_dataset.std()
     z_scores = stats.zscore(test_dataset_z)
     abs_z_scores = np.abs(z_scores)
-    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    filtered_entries = (abs_z_scores < 6).all(axis=1)
     test_dataset['label'] = label
-    print(test_dataset.shape)
+
     test_dataset = test_dataset[filtered_entries]
     return train_dataset, test_dataset
 
@@ -138,7 +139,6 @@ def custom_loss(output, labels, weigths=None, weigths_prior=None):
         loss = criterion(outputs, labels)
         #print(loss)
     return loss
-
 
 def get_predictions(model, iterator, device):
     model.eval()
@@ -224,17 +224,20 @@ def get_tensors(data, batch_size):
     x = torch.tensor(data.drop('label', axis = 1).values.astype(np.float32)) 
     #x = f.normalize(x)
     xy_ = data_utils.TensorDataset(x, target) 
-    xy = data_utils.DataLoader(dataset = xy_, batch_size = batch_size)
+    xy = data_utils.DataLoader(dataset = xy_, batch_size = batch_size, shuffle=True)
     print('shape tensor: ', (x.size()))
     return data, x, target, xy
 
-def generate_samples(samples, train_dataset, epsilon, option = 2, DRs={'feature':'PeriodLS','up': 0.85, 'lp': 0.25}): 
+def generate_samples(samples, train_dataset, epsilon, option = 2, DRs={'feature':'PeriodLS','up': 0.35, 'lp': 0.2}): 
     number_columns = train_dataset.shape[1]
     samples1 = samples*2
     data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
-
-    
-        #option 1
+    cols = list(train_dataset.columns)
+    cols.remove('label')
+    #std = train_dataset[train_dataset.label=='ClassA'][cols].std()
+    #zone['label'] = 'Null' 
+    #print(zone)
+    #option 1
     if option == 1:
         for i in range(samples1):
             new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
@@ -246,23 +249,22 @@ def generate_samples(samples, train_dataset, epsilon, option = 2, DRs={'feature'
 
     if option==2:
         #option 2
+        means = train_dataset[train_dataset.label=='ClassA'][cols].mean().values
         for i in range(samples):
-            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
-            new_data.columns = train_dataset.columns
+            zone = 0.0 # ( means + np.random.normal(0.0, 0.001)).reshape(1,-1)
+            new_data = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
+            #new_data.columns = train_dataset.columns
             new_data[DRs['feature']]=(np.random.uniform(DRs['lp']-epsilon,DRs['lp']))#-minimum_period)/(maximum_period-minimum_period)
-            new_data['label'] = 'Noise'
             frames = [data_prior, new_data]
-            data_prior = pd.concat(frames, ignore_index=True)
-
-
-        for i in range(samples):    
-            new_data = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns) 
-            new_data.columns = train_dataset.columns
+            data_prior = pd.concat(frames, ignore_index=True)  
+        for i in range(samples):
+            zone = 0.0 #( means + np.random.normal(0.0, 0.001)).reshape(1,-1)
+            new_data = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
+            #new_data.columns = train_dataset.columns
             new_data[DRs['feature']]=(np.random.uniform(DRs['up'],DRs['up']+epsilon))
-            new_data['label'] = 'Noise'
             frames = [data_prior, new_data]
             data_prior = pd.concat(frames, ignore_index=True)
-
+        data_prior['label'] = 'Noise'
 
     #option 3
     if option==3:
@@ -330,14 +332,15 @@ def plot_representations(data, labels, ax, n_curves = None):
     handles, labels = scatter.legend_elements()
     legend = ax.legend(handles = handles, labels = labels)
 
-def generate_samples_2D(samples, train_dataset, epsilon=0.1, distribution='gaussian', 
-                        DRs={'up': 0.85, 'lp': 0.25, 'ua':0.45, 'la':0.1}, subclass=False, 
-                        type_params='deterministic'):
+def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gaussian', 
+                        DRs={'up': 0.35, 'lp': 0.2, 'ua':0.6, 'la':0.2}, subclass=False, 
+                        type_params='fit', eps_prior=0.2):
+
+
 
     if distribution== 'gaussian':
-        data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
+        #data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
         if subclass:
-            eps_prior=0.2
             class_filtered_upper = (train_dataset[(train_dataset.label=='ClassA') & 
                                    (train_dataset.PeriodLS>train_dataset[(train_dataset.label=='ClassA')].PeriodLS.max()-eps_prior) &
                                    (train_dataset.Amplitude>train_dataset[(train_dataset.label=='ClassA')].Amplitude.max()-eps_prior)]
@@ -348,8 +351,8 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.1, distribution='gauss
                                    (train_dataset.Amplitude<train_dataset[(train_dataset.label=='ClassA')].Amplitude.min()+eps_prior)]
                                     )
         else: 
-            class_filtered_upper = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS>0.8) & (train_dataset.Amplitude>0.4)]
-            class_filtered_lower = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS<0.3) & (train_dataset.Amplitude<0.15)]
+            class_filtered_upper = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS>0.7) | (train_dataset.Amplitude>0.4)]
+            class_filtered_lower = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS<0.3) | (train_dataset.Amplitude<0.15)]
 
         if type_params=='deterministic':
             mean_upper = [DRs['ua'],DRs['up']]
@@ -388,7 +391,7 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.1, distribution='gauss
 
     elif distribution == 'uniform': 
         print('uniform')
-        data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
+        #data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
         print('starting')
         s_period = uniform.rvs(loc=DRs['up'], scale=epsilon, size=samples).reshape(-1,1)
         print(s_period.shape)
@@ -410,9 +413,16 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.1, distribution='gauss
         print('phase 1')
         #samples_1 = samples_upper[samples_upper['PeriodLS']>samples_upper['PeriodLS'].mean()].shape[0]
         #print('phase 1.1')
-        new_data_upper = pd.DataFrame(0, index=np.arange(samples), columns=train_dataset.columns) 
-        print('phase 1.2')
 
+        cols = list(train_dataset.columns)
+        cols.remove('label')
+        zone = 0.0 #(train_dataset[train_dataset.label=='ClassA'][cols].mean().values+ np.random.normal(0, 0.001)).reshape(1,-1)
+
+
+        new_data_upper = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
+        new_data_upper = pd.concat([new_data_upper]*samples, ignore_index=True)
+        print('phase 1.2')
+        new_data_upper['label'] = 'Noise'
         new_data_upper.columns = train_dataset.columns
         print('phase 1.3')
         print(new_data_upper.shape)
@@ -422,13 +432,15 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.1, distribution='gauss
 
         #new_data_upper.loc[new_data_upper.PeriodLS<new_data_upper.PeriodLS.mean(),'PeriodLS']=-new_data_upper.loc[new_data_upper.PeriodLS<new_data_upper.PeriodLS.mean()]
         new_data_upper['Amplitude']= samples_upper['Amplitude']
-        #new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean(),'Amplitude']=-new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean()]
-        
+        #new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean(),'Amplitude']=-new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean()]        
         print('phase 2')
-
         new_data_upper['label'] = 'Noise'
         #samples_2 = samples_lower[samples_lower['PeriodLS']<samples_lower.PeriodLS.mean()].shape[0]
-        new_data_lower = pd.DataFrame(0, index=np.arange(samples), columns=train_dataset.columns) 
+
+        new_data_lower = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
+        new_data_lower = pd.concat([new_data_lower]*samples, ignore_index=True)
+        new_data_lower['label'] = 'Noise'
+        #new_data_lower = pd.DataFrame(zone, index=np.arange(samples), columns=cols) 
         new_data_lower.columns = train_dataset.columns
         new_data_lower['PeriodLS']= samples_lower['PeriodLS']
         #new_data_lower.loc[new_data_lower.PeriodLS>new_data_lower.PeriodLS.mean(),'PeriodLS']=-new_data_lower.loc[new_data_lower.PeriodLS>new_data_lower.PeriodLS.mean()]

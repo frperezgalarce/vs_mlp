@@ -21,39 +21,25 @@ import sys
 import utilities as ut
 from Network import Net
 import Network as nn
-SEED = 1234
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
 
 
 results = []
-
-epsilon = 0.1
 num_classes = 2
 
-learning_rate = 0.001
-samples = 4000
+learning_rate = 0.005
+samples = 3000
 
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-torch.backends.cudnn.benchmark = True
-
-
-
-for epsilon in [0.1]:
+for epsilon in [0.2]:
     for batch_size in [256]:
-        for hidden_size in [4]:
-            for aux_loss_activated in [True, False]:
-                for EPS1 in [0.1, 1e-2, 1e-3]:
-                    for n in [100000]:
-                        for opt in [1,2]:
-                            for t in range(10):
+        for hidden_size in [100]:
+            for EPS1 in [0.025]:
+                for n in [5000, 10000, 50000, 100000]:
+                    for aux_loss_activated in [True]:
+                        for opt in [2]:
+                            for t in range(30):
                                 train_dataset, test_dataset = ut.load_files(dataset=1)
                                 input_size = train_dataset.shape[1]-1
-                                
+                                train_dataset, test_dataset = ut.delete_outliers(train_dataset, test_dataset)                                
                                 if n < 50000:
                                     train_dataset = ut.down_sampling(train_dataset)
                                     train_dataset = train_dataset.sample(n)
@@ -65,20 +51,27 @@ for epsilon in [0.1]:
                                     print('clase no RR Lrae', n2)
                                     trainig_dataset_b = train_dataset[~(train_dataset.label=='ClassA')].sample(n2)
                                     train_dataset = pd.concat([trainig_dataset_a, trainig_dataset_b])
-                                
-                                train_dataset, test_dataset = ut.delete_outliers(train_dataset, test_dataset)
-
+                                                                
                                 train_dataset = ut.sort_columns(train_dataset)
                                 test_dataset = ut.sort_columns(test_dataset)
-
+                                #train_dataset, test_dataset = ut.normalize(train_dataset, test_dataset)
                                 test_dataset_pred = test_dataset.copy()
                                 train_dataset_pred = train_dataset.copy()
                                 try:
-                                    data_prior = ut.generate_samples(samples, train_dataset, epsilon,  option = opt)
+                                    data_prior = ut.generate_samples(samples, train_dataset, epsilon,  option = opt,  DRs={'feature':'Amplitude', 'up': 0.8, 'lp': 0.2})
+                                    
+                                    if train_dataset[train_dataset.label=='ClassB'].shape[0] >= samples:
+                                        samples_prior = samples 
+                                    else: 
+                                        samples_prior = train_dataset[train_dataset.label=='ClassB'].shape[0]
+                                    
+                                    data_prior = pd.concat([data_prior, train_dataset[train_dataset.label=='ClassB'].sample(samples_prior)])
 
-                                    train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.1, random_state=42)
+                                    train_dataset, test_dataset, data_prior = ut.normalize(train_dataset, test_dataset, data_prior)
 
-                                    train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.1, random_state=42)
+                                    train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2)
+
+                                    train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2)
                                     print(train_dataset_prior.columns)
                                     _, _, train_target_prior, train_loader_prior = ut.get_tensors(train_dataset_prior, batch_size)
                                     _, _, val_target_prior, val_loader_prior     = ut.get_tensors(val_dataset_prior, batch_size)
@@ -91,14 +84,19 @@ for epsilon in [0.1]:
                                     net = Net(input_size, hidden_size, hidden_size, num_classes)
                                     net.cuda()
 
-                                    hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, 
+                                    hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                     EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
-                                    acc_train = nn.get_results(net, train_loader, input_size)
-                                    acc_test =nn.get_results(net, test_loader, input_size)
-                                    results.append([acc_train, acc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
-                                    pd.DataFrame(results, columns=['acc_train', 'acc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('--07-01-2022-results.csv')
-                                except Exception as e: 
+                                    acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
+                                    acc_test, recall_test, f1_test  = nn.get_results(net, test_loader, input_size)
+                                    roc_train = nn.get_roc_curve(net, train_loader, input_size)
+                                    roc_test = nn.get_roc_curve(net, test_loader, input_size)
+                                    results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
+                                    pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
+                                                                   'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('30-05-2022-1D-amplitude-RRLyrae.csv')
+                                    #nn.get_roc_curve(net, test_loader, input_size, name= str(t)+"_"+str(acc_test), title="Regularization")
+
+                                except Exception as error:
+                                    print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
-                                    print(e)

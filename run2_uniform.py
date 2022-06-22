@@ -32,19 +32,20 @@ torch.backends.cudnn.deterministic = True
 
 results = []
 num_classes = 2
-learning_rate = 0.001
-samples = 5000
+learning_rate = 0.005
+samples = 3000
 epsilon=0
 #for epsilon in [0.1, 0.05, 0.025, 0.15]:
 for batch_size in [256]:
     for hidden_size in [100]:
         for aux_loss_activated in [True]:
-            for EPS1 in [0.005]:
+            for EPS1 in [0.025]:
                 for n in [5000, 10000, 50000, 100000]:
                     for opt in [1]:
-                        for t in range(15):
+                        for t in range(30):
                             train_dataset, test_dataset = ut.load_files(dataset=1)
                             input_size = train_dataset.shape[1]-1
+                            train_dataset, test_dataset = ut.delete_outliers(train_dataset, test_dataset)
 
                             if n < 50000:
                                 train_dataset = ut.down_sampling(train_dataset)
@@ -58,20 +59,29 @@ for batch_size in [256]:
                                 trainig_dataset_b = train_dataset[~(train_dataset.label=='ClassA')].sample(n2)
                                 train_dataset = pd.concat([trainig_dataset_a, trainig_dataset_b])
                             
-                            train_dataset, _ = ut.delete_outliers(train_dataset, test_dataset)
+
 
                             train_dataset = ut.sort_columns(train_dataset)
                             test_dataset = ut.sort_columns(test_dataset)
-
+                            #train_dataset, test_dataset = ut.normalize(train_dataset, test_dataset)
                             test_dataset_pred = test_dataset.copy()
                             train_dataset_pred = train_dataset.copy()
 
                             try:
                                 data_prior = ut.generate_samples_2D(samples, train_dataset, distribution='uniform')
 
-                                train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2, random_state=42)
+                                if train_dataset[train_dataset.label=='ClassB'].shape[0] >= samples:
+                                    samples_prior = samples 
+                                else: 
+                                    samples_prior = train_dataset[train_dataset.label=='ClassB'].shape[0] 
+                                
+                                data_prior = pd.concat([data_prior, train_dataset[train_dataset.label=='ClassB'].sample(samples_prior)])
 
-                                train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2, random_state=42)
+                                train_dataset, test_dataset, data_prior = ut.normalize(train_dataset, test_dataset, data_prior)
+
+                                train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2)
+
+                                train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2)
                                 print(train_dataset_prior.columns)
                                 _, _, train_target_prior, train_loader_prior = ut.get_tensors(train_dataset_prior, batch_size)
                                 _, _, val_target_prior, val_loader_prior     = ut.get_tensors(val_dataset_prior, batch_size)
@@ -89,10 +99,12 @@ for batch_size in [256]:
 
                                 acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
                                 acc_test, recall_test, f1_test  = nn.get_results(net, test_loader, input_size)
-                                results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
-                                pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test',
-                                     'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('03-05-2022-results_2d.csv')
+                                roc_train = nn.get_roc_curve(net, train_loader, input_size)
+                                roc_test = nn.get_roc_curve(net, test_loader, input_size)
+                                results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
+                                pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
+                                                                   'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('30-05-2022-2D-uniform-RRLyrae.csv')
                             except Exception as e:
                                 print(e) 
                                 print(str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
