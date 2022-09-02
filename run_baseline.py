@@ -92,7 +92,7 @@ for epsilon in [0.2]:
                                     results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('28-07-2022-l1-baseline-RRLyrae.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('test.csv')
                                 except Exception as error:
                                     print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

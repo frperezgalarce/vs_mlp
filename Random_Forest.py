@@ -53,6 +53,6 @@ for n in [5000, 10000, 50000]:
             print(roc_test)
             results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, n])
             pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
-                                            'roc_train', 'roc_test', 'n',]).to_csv('26-07-2022-RF-baseline-RRLyrae.csv')
+                                            'roc_train', 'roc_test', 'n',]).to_csv('test.csv')
         except Exception as error:
             print(error) 

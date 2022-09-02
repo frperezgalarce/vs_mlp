@@ -94,7 +94,7 @@ for epsilon in [0.2]:
                                     results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('30-05-2022-1D-amplitude-RRLyrae.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('test.csv')
                                     #nn.get_roc_curve(net, test_loader, input_size, name= str(t)+"_"+str(acc_test), title="Regularization")
 
                                 except Exception as error:

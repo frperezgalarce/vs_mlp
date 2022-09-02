@@ -56,7 +56,6 @@ def load_files(dataset=1, subclass=''):
         print('---')
     return train_dataset, test_dataset
 
-
 def delete_outliers(train_dataset, test_dataset): 
     label = train_dataset['label']
     del train_dataset['label']
@@ -77,7 +76,6 @@ def delete_outliers(train_dataset, test_dataset):
 
     test_dataset = test_dataset[filtered_entries]
     return train_dataset, test_dataset
-
 
 def sort_columns(data): 
     data = data[['PeriodLS', 'Amplitude', 'AndersonDarling', 'Autocor_length', 'Beyond1Std',
