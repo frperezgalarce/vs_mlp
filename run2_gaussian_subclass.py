@@ -28,7 +28,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 
-sc = '_RRd'
+sc = '_RRc'
 
 
 results = []
@@ -41,7 +41,7 @@ for batch_size in [256]:
     for hidden_size in [100]:
         for aux_loss_activated in [True]:
             for EPS1 in [0.025]:
-                for n in [100, 200, 400]:
+                for n in [2500, 5000, 10000]:
                     for opt in [1]:
                         for t in range(30):
                             train_dataset, test_dataset = ut.load_files(dataset=1, subclass=sc)
@@ -68,7 +68,9 @@ for batch_size in [256]:
                             train_dataset_pred = train_dataset.copy()
 
                             try:
-                                data_prior = ut.generate_samples_2D(samples, train_dataset, distribution='gaussian', subclass=True)
+                                data_prior = ut.generate_samples_2D(samples, train_dataset, distribution='gaussian', subclass=True,
+                                                                    DRs={'up': 0.55, 'lp': 0.15, 'ua':0.6, 'la':0.2})
+
                                 if train_dataset[train_dataset.label=='ClassB'].shape[0] >= samples:
                                     samples_prior = samples 
                                 else: 
@@ -94,7 +96,7 @@ for batch_size in [256]:
                                 net = Net(input_size, hidden_size, hidden_size, num_classes)
                                 net.cuda()
 
-                                hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
+                                hist_val, hist_train, _ = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                 EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
                                 acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
@@ -104,7 +106,7 @@ for batch_size in [256]:
                                 results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                 pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('05-06-2022-sc-2d_gaussian-RRLyrae.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('01-08-2022-sc-2d_gaussian-RRLyrae.csv')
                             except Exception as e:
                                 print(e) 
                                 print(str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))

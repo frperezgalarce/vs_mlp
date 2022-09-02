@@ -100,13 +100,13 @@ for epsilon in [0.2]:
 
                                     hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                     EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
-
+                                    print('training done')
                                     acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
                                     acc_test, recall_test, f1_test  = nn.get_results(net, test_loader, input_size)
-                                    
+                                    print('confusion matrix results')
                                     roc_train = nn.get_roc_curve(net, train_loader, input_size)
                                     roc_test = nn.get_roc_curve(net, test_loader, input_size)
-
+                                    print('roc results')
                                     results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',

@@ -333,14 +333,21 @@ def plot_representations(data, labels, ax, n_curves = None):
     legend = ax.legend(handles = handles, labels = labels)
 
 def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gaussian', 
-                        DRs={'up': 0.35, 'lp': 0.2, 'ua':0.6, 'la':0.2}, subclass=False, 
+                        DRs={'up': 0.45, 'lp': 0.1, 'ua':0.6, 'la':0.2}, subclass=False, 
                         type_params='fit', eps_prior=0.2):
 
 
 
     if distribution== 'gaussian':
         #data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
+
         if subclass:
+            print(train_dataset[(train_dataset.label=='ClassA')].PeriodLS.max())
+            print(train_dataset[(train_dataset.label=='ClassA')].PeriodLS.min())
+            print(train_dataset[(train_dataset.label=='ClassA')].Amplitude.max())
+            print(train_dataset[(train_dataset.label=='ClassA')].Amplitude.min())
+            print('max period data')
+            
             class_filtered_upper = (train_dataset[(train_dataset.label=='ClassA') & 
                                    (train_dataset.PeriodLS>train_dataset[(train_dataset.label=='ClassA')].PeriodLS.max()-eps_prior) &
                                    (train_dataset.Amplitude>train_dataset[(train_dataset.label=='ClassA')].Amplitude.max()-eps_prior)]
@@ -355,11 +362,11 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gauss
             class_filtered_lower = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS<0.3) | (train_dataset.Amplitude<0.15)]
 
         if type_params=='deterministic':
-            mean_upper = [DRs['ua'],DRs['up']]
-            cov_upper =   [[0.001, 0.000],[0.00, 0.001]]
+            mean_upper = [DRs['ua']+epsilon,DRs['up']+epsilon]
+            cov_upper =   [[0.01, 0.000],[0.00, 0.01]]
 
-            mean_lower = [DRs['la'],DRs['lp']]
-            cov_lower =  [[0.001, 0.000],[0.00, 0.001]]
+            mean_lower = [DRs['la']-epsilon,DRs['lp']-epsilon]
+            cov_lower =  [[0.01, 0.000],[0.00, 0.01]]
 
         elif type_params=='fit': 
             mean_upper = (class_filtered_upper[['Amplitude', 'PeriodLS']].mean())+epsilon

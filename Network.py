@@ -79,7 +79,10 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
     
     for param in net.parameters():
         param.requires_grad = True
-
+    
+    l1_activated = False
+    l2_activated = False
+    lambda_pen = 0.001
     trigger_times = 0
     verbose = True
     dynamic = True
@@ -166,8 +169,18 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                 star = Variable(star.view(-1, input_size)).cuda()
                 labels = Variable(labels).cuda()
                 outputs, _, _ = net(star)
-                loss = criterion(outputs, labels.long())      
-                loss.backward()
+                loss = criterion(outputs, labels.long()) 
+                
+                if l2_activated:
+                    l2 = sum(torch.norm(p, 2) for p in net.parameters())
+                    loss = lambda_pen*l2 + loss
+                    loss.backward()
+                elif l1_activated:
+                    l1 = sum(torch.norm(p, 1) for p in net.parameters())
+                    loss = lambda_pen*l1 + loss
+                    loss.backward()
+                else: 
+                    loss.backward()
 
                 #torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=2.0, norm_type=2)
                 optimizer.step()
@@ -235,7 +248,6 @@ def get_results(net, data, input_size):
         #_, predicted = torch.max(outputs.data, 1)
         #total += labels.size(0)
         #correct += (predicted.cpu() == labels.long()).sum()
-
         predicted_classes = torch.argmax(outputs.cpu(), dim=1) == 1
         target_classes = labels.data
         target_true += torch.sum(target_classes == 1).float().numpy()
@@ -331,7 +343,6 @@ def plot_grad_flow(named_parameters):
     plt.legend([Line2D([0], [0], color="c", lw=4),
                 Line2D([0], [0], color="b", lw=4),
                 Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
-
 
 def train_mask_opt(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, learning_rate, 
             input_size, num_epochs_prior=10000, aux_loss_activated=True, patience = 10): 

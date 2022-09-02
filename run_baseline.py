@@ -33,7 +33,7 @@ for epsilon in [0.2]:
     for batch_size in [256]:
         for hidden_size in [100]:
             for EPS1 in [0.025]:
-                for n in [5000, 10000, 50000, 100000]:
+                for n in [5000, 10000, 50000]:
                     for aux_loss_activated in [False]:
                         for opt in [2]:
                             for t in range(30):
@@ -82,7 +82,7 @@ for epsilon in [0.2]:
                                     net = Net(input_size, hidden_size, hidden_size, num_classes)
                                     net.cuda()
 
-                                    hist_val, hist_train = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
+                                    hist_val, hist_train, _ = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
                                     EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
 
                                     acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
@@ -92,7 +92,7 @@ for epsilon in [0.2]:
                                     results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('30-05-2022-(dropout)-baseline-RRLyrae.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('28-07-2022-l1-baseline-RRLyrae.csv')
                                 except Exception as error:
                                     print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
