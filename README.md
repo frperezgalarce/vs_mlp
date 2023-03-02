@@ -20,3 +20,8 @@ method provides a new path to incorporate knowledge from characteristic features
 networks to manage the underlying data shift problem
 
 ### Pérez-Galarce, F., et al. "Informative regularization for a multi-layer perceptron RR Lyrae classifier under data shift." Astronomy and Computing (2023): 100694.
+
+# Run
+conda create --name test
+conda activate test
+conda install --file requirements.txt

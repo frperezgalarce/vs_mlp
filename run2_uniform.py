@@ -1,33 +1,12 @@
 import torch
 import torch.nn as nn
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
-import torch.nn.functional as f 
-from torch.autograd import Variable
 torch.backends.cudnn.deterministic = True
 import pandas as pd
-import numpy as np
-import torch.utils.data as data_utils
-from sklearn.preprocessing import StandardScaler 
 from sklearn.model_selection import train_test_split
-from sklearn import metrics
-import random 
 from matplotlib import pyplot as plt
-from sklearn import decomposition
-from sklearn import manifold
-from scipy import stats
-from itertools import cycle
-import sys
 import utilities as ut
 from Network import Net
 import Network as nn
-SEED = 1234
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-torch.cuda.manual_seed(SEED)
-torch.backends.cudnn.deterministic = True
-
 
 
 results = []

@@ -1,15 +1,10 @@
 
 import torch
-import torch.nn as nn
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
 from Network import *
 import torch.nn.functional as f 
-from torch.autograd import Variable
 torch.backends.cudnn.deterministic = True
 import pandas as pd
 import numpy as np
-import torch.utils.data as data_utils
 from sklearn.preprocessing import StandardScaler 
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
@@ -25,7 +20,7 @@ from sklearn.utils import resample
 from scipy.stats import uniform 
 from sklearn.metrics import roc_curve, roc_auc_score
 MAX_PERIOD_VALUE = 10
-
+PATH = ''
 def normalize(df_train, df_test, df_prior):
     for col in df_train.columns: 
         if col!='label': 
@@ -39,8 +34,8 @@ def normalize(df_train, df_test, df_prior):
 
 def load_files(dataset=1, subclass=''): 
     number = dataset
-    fileTrain = '/home/franciscoperez/Documents/GitHub/data/BIASEDFATS/Train_rrlyr-'+str(number)+subclass+'.csv'
-    fileTest = '/home/franciscoperez/Documents/GitHub/data/BIASEDFATS/Test_rrlyr-'+str(number)+subclass+'.csv'
+    fileTrain = PATH+str(number)+subclass+'.csv'
+    fileTest =  PATH +str(number)+subclass+'.csv'
     train_dataset = pd.read_csv(fileTrain, index_col ='Unnamed: 0')
     test_dataset = pd.read_csv(fileTest)
     try:
