@@ -19,4 +19,4 @@ RR Lyrae stars, outperforming baseline models by up to 3% through a more reliabl
 method provides a new path to incorporate knowledge from characteristic features into artificial neural
 networks to manage the underlying data shift problem
 
-Pérez-Galarce, F., et al. "Informative regularization for a multi-layer perceptron RR Lyrae classifier under data shift." Astronomy and Computing (2023): 100694.
+## Pérez-Galarce, F., et al. "Informative regularization for a multi-layer perceptron RR Lyrae classifier under data shift." Astronomy and Computing (2023): 100694.
