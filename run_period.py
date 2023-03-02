@@ -82,18 +82,12 @@ for epsilon in [0.2]:
                                     train_dataset, test_dataset, data_prior = ut.normalize(train_dataset, test_dataset, data_prior)
                                     print(data_prior)
                                     train_dataset, val_dataset = train_test_split(train_dataset, test_size=0.2)
-
                                     train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2)
-                                    print(train_dataset_prior.columns)
-
-
+                                    
                                     _, _, train_target_prior, train_loader_prior = ut.get_tensors(train_dataset_prior, batch_size)
-                                    _, _, val_target_prior, val_loader_prior     = ut.get_tensors(val_dataset_prior, batch_size)
                                     _, _, train_target, train_loader             = ut.get_tensors(train_dataset, batch_size)
-                                    _, _, train_target_pred, train_loader_pred   = ut.get_tensors(train_dataset_pred, batch_size)
                                     _, _, val_target, val_loader                 = ut.get_tensors(val_dataset_prior, batch_size)
                                     _, _, test_target, test_loader               = ut.get_tensors(test_dataset, batch_size)
-                                    _, _, test_target_pred, test_loader_pred     = ut.get_tensors(test_dataset_pred, batch_size)
 
                                     net = Net(input_size, hidden_size, hidden_size, num_classes)
                                     net.cuda()

@@ -24,7 +24,7 @@ from scipy import stats
 from sklearn.utils import resample
 from scipy.stats import uniform 
 from sklearn.metrics import roc_curve, roc_auc_score
-
+MAX_PERIOD_VALUE = 10
 
 def normalize(df_train, df_test, df_prior):
     for col in df_train.columns: 
@@ -337,15 +337,7 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gauss
 
 
     if distribution== 'gaussian':
-        #data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
-
         if subclass:
-            print(train_dataset[(train_dataset.label=='ClassA')].PeriodLS.max())
-            print(train_dataset[(train_dataset.label=='ClassA')].PeriodLS.min())
-            print(train_dataset[(train_dataset.label=='ClassA')].Amplitude.max())
-            print(train_dataset[(train_dataset.label=='ClassA')].Amplitude.min())
-            print('max period data')
-            
             class_filtered_upper = (train_dataset[(train_dataset.label=='ClassA') & 
                                    (train_dataset.PeriodLS>train_dataset[(train_dataset.label=='ClassA')].PeriodLS.max()-eps_prior) &
                                    (train_dataset.Amplitude>train_dataset[(train_dataset.label=='ClassA')].Amplitude.max()-eps_prior)]
@@ -356,6 +348,7 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gauss
                                    (train_dataset.Amplitude<train_dataset[(train_dataset.label=='ClassA')].Amplitude.min()+eps_prior)]
                                     )
         else: 
+            train_dataset = train_dataset[train_dataset.PeriodLS<MAX_PERIOD_VALUE]
             class_filtered_upper = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS>0.7) | (train_dataset.Amplitude>0.4)]
             class_filtered_lower = train_dataset[(train_dataset.label=='ClassA') & (train_dataset.PeriodLS<0.3) | (train_dataset.Amplitude<0.15)]
 
@@ -369,11 +362,9 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gauss
         elif type_params=='fit': 
             mean_upper = (class_filtered_upper[['Amplitude', 'PeriodLS']].mean())+epsilon
             cov_upper =   (class_filtered_upper[['Amplitude', 'PeriodLS']].cov()) #[[0.5, 0],[0, 0.5]]
-            print(cov_upper)
             
             mean_lower = (class_filtered_lower[['Amplitude', 'PeriodLS']].mean())-epsilon
             cov_lower =  (class_filtered_lower[['Amplitude', 'PeriodLS']].cov()) #[[0.5, 0],[0, 0.5]]
-            print(cov_lower)
         
         samples_upper = pd.DataFrame(np.random.multivariate_normal(mean_upper, cov_upper, samples), columns=['Amplitude', 'PeriodLS'])
         samples_lower = pd.DataFrame(np.random.multivariate_normal(mean_lower, cov_lower, samples), columns=['Amplitude', 'PeriodLS'])
@@ -395,81 +386,50 @@ def generate_samples_2D(samples, train_dataset, epsilon=0.2, distribution='gauss
         new_data_lower['label'] = 'Noise'
 
     elif distribution == 'uniform': 
-        print('uniform')
-        #data_prior = pd.DataFrame(0, index=np.arange(1), columns=train_dataset.columns)
-        print('starting')
+
         s_period = uniform.rvs(loc=DRs['up'], scale=epsilon, size=samples).reshape(-1,1)
-        print(s_period.shape)
         s_amplitude = uniform.rvs(loc=DRs['ua'], scale=epsilon, size=samples).reshape(-1,1)
-        print(s_amplitude.shape)
         s_total = np.concatenate((s_period, s_amplitude), axis=1)
-        print(s_total.shape)
-        print('befora concat')
         samples_upper = pd.DataFrame(s_total, columns=['PeriodLS','Amplitude'])
 
         s_period = uniform.rvs(loc=DRs['lp']-epsilon, scale=DRs['lp'], size=samples).reshape(-1,1)
         s_amplitude = uniform.rvs(loc=DRs['la']-epsilon, scale=DRs['la'], size=samples).reshape(-1,1)
         s_total = np.concatenate((s_period, s_amplitude), axis=1)
         samples_lower = pd.DataFrame(s_total, columns=['PeriodLS','Amplitude'])
-
-
-        #samples_lower = pd.DataFrame(np.random.multivariate_normal(mean_lower, cov_lower, samples), columns=['Amplitude', 'PeriodLS'])
-
-        print('phase 1')
-        #samples_1 = samples_upper[samples_upper['PeriodLS']>samples_upper['PeriodLS'].mean()].shape[0]
-        #print('phase 1.1')
-
         cols = list(train_dataset.columns)
         cols.remove('label')
-        zone = 0.0 #(train_dataset[train_dataset.label=='ClassA'][cols].mean().values+ np.random.normal(0, 0.001)).reshape(1,-1)
+        zone = 0.0 
 
 
         new_data_upper = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
         new_data_upper = pd.concat([new_data_upper]*samples, ignore_index=True)
-        print('phase 1.2')
         new_data_upper['label'] = 'Noise'
         new_data_upper.columns = train_dataset.columns
-        print('phase 1.3')
-        print(new_data_upper.shape)
-        #print(samples_upper[samples_upper['PeriodLS']>samples_upper['PeriodLS'].mean()].shape)
         new_data_upper['PeriodLS']= samples_upper['PeriodLS']
-        print('phase 1.4')
 
-        #new_data_upper.loc[new_data_upper.PeriodLS<new_data_upper.PeriodLS.mean(),'PeriodLS']=-new_data_upper.loc[new_data_upper.PeriodLS<new_data_upper.PeriodLS.mean()]
         new_data_upper['Amplitude']= samples_upper['Amplitude']
-        #new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean(),'Amplitude']=-new_data_upper.loc[new_data_upper.Amplitude<new_data_upper.Amplitude.mean()]        
-        print('phase 2')
         new_data_upper['label'] = 'Noise'
-        #samples_2 = samples_lower[samples_lower['PeriodLS']<samples_lower.PeriodLS.mean()].shape[0]
 
         new_data_lower = pd.DataFrame(zone, index=np.arange(1), columns=cols) 
         new_data_lower = pd.concat([new_data_lower]*samples, ignore_index=True)
         new_data_lower['label'] = 'Noise'
-        #new_data_lower = pd.DataFrame(zone, index=np.arange(samples), columns=cols) 
         new_data_lower.columns = train_dataset.columns
         new_data_lower['PeriodLS']= samples_lower['PeriodLS']
-        #new_data_lower.loc[new_data_lower.PeriodLS>new_data_lower.PeriodLS.mean(),'PeriodLS']=-new_data_lower.loc[new_data_lower.PeriodLS>new_data_lower.PeriodLS.mean()]
 
         new_data_lower['Amplitude']= samples_lower['Amplitude']
-        #new_data_lower.loc[new_data_lower.Amplitude>new_data_lower.Amplitude.mean(),'Amplitude']=-new_data_lower.loc[new_data_lower.Amplitude>new_data_lower.Amplitude.mean()]
 
         new_data_lower['label'] = 'Noise'
-        print('phase 3')
 
     
     frames = [new_data_lower, new_data_upper]
     data_prior = pd.concat(frames, ignore_index=True)
-    print(data_prior.shape)
     data_prior.dropna(inplace=True)
-    print(data_prior.shape)
     return data_prior
 
 def down_sampling(df):
-    print('downsampling')
     df_a = df[df.label == 'ClassA']
     df_b = df[df.label == 'ClassB']
-    print(df_a.shape[0])
-    print(df_b.shape[0])
+
     if df_a.shape[0] > df_b.shape[0]:
         df_majority = df_a
         df_minority = df_b
@@ -480,7 +440,6 @@ def down_sampling(df):
     df_majority_downsampled = resample(df_majority, replace=False,
                                        n_samples=df_minority.shape[0], random_state=123)
     df_downsampled = pd.concat([df_majority_downsampled, df_minority])
-    print('done downsampling')
     return df_downsampled
 
 def plot_training(hist_val, hist_train):
@@ -539,8 +498,6 @@ def initialize_data(path, survey='OGLE', sep_columns=' ', sep_header=' ', max_sa
     return data, ID, class_col, classes
 
 def read_file_fats(file, format_file='.dat', sep_columns=',', sep_header='\t'):
-    #path = 'data/'
-    #file = path + file
     if format_file == '.dat':
         file = open(file)
         lst = []
@@ -556,12 +513,10 @@ def read_file_fats(file, format_file='.dat', sep_columns=',', sep_header='\t'):
             else:
                 columns.append(line.split(sep_header))
             count = count + 1
-        print(bad, 'lines fail when were reading')
         data = pd.DataFrame(lst, columns=columns[0])
         return data
     else:
         if format_file == '.csv':
-            print('Here')
             data = pd.read_csv(file)
             return data
         else:

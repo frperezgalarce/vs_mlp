@@ -75,7 +75,7 @@ class Net(nn.Module):
         return out3, out2, out1
 
 def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, learning_rate, 
-            input_size, num_epochs_prior=1500, aux_loss_activated=True, patience = 10): 
+            input_size, num_epochs_prior=1500, aux_loss_activated=True, patience = 10, model_number=1, size = 1000): 
     
     for param in net.parameters():
         param.requires_grad = True
@@ -92,13 +92,8 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
     hist_val = []
     hist_prior = []
     criterion = nn.CrossEntropyLoss() 
-    #criterion2 = nn.L1Loss(reduction='mean') 
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
     optimizer_prior = torch.optim.Adam(net.parameters(), lr=0.5*learning_rate)
-
-    
-    
-    print(dict(net.named_parameters()))
 
     locked_masks2 = {n: (torch.abs(w) > EPS1) | (n.endswith('bias') | ("batch" in str(n)))  for n, w in net.named_parameters()}
     locked_masks = {n: torch.abs(w) <= EPS1 for n, w in net.named_parameters()}
@@ -120,24 +115,10 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                 loss = criterion(outputs, labels.long())
                 loss.backward(retain_graph=True)
                 torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=2.0, norm_type=2)
-                for n, w in net.named_parameters():   
-                    #print(n) 
-                    #print(w)
-                    #print(w.grad)                                                                                                                                                                       
+                for n, w in net.named_parameters():                                                                                                                                                              
                     if w.grad is not None and n in locked_masks:                                                                                                                                                                                   
-                        w.grad[locked_masks[n]] = 0.0
-                    
-                    #elif (w.grad is None): 
-                    #    print('grad: ', w.grad)
-                    #    print('n: ', str(n))
-                        #print('mask: ', locked_masks[n])
-                        #print(w.grad[locked_masks[n]])                           
-                    
+                        w.grad[locked_masks[n]] = 0.0                                                             
                 optimizer.step()
-                '''
-                if ((epoch+1)%10==0):
-                    plot_grad_flow(net.named_parameters())
-                '''
                 optimizer.zero_grad()  
                 running_loss += loss.item()   
 
@@ -145,23 +126,14 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                 star_prior = Variable(star_prior.view(-1, input_size), requires_grad=True).cuda()
                 labels_prior = Variable(labels_prior, requires_grad=True).cuda()
                 outputs_prior, _, _ = net(star_prior)
-                loss_prior = criterion(outputs_prior, labels_prior.long()) #criterion2(outputs_prior[:,0], labels_prior) #criterion(outputs_prior, labels_prior.long()) ...cambiar Noise por 1.0      
+                loss_prior = criterion(outputs_prior, labels_prior.long()) 
                 loss_prior.backward(retain_graph=True)
 
-
-
-                #torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=2.0, norm_type=2)
                 for n, w in net.named_parameters():                                                                                                                                                                           
                     if w.grad is not None and n in locked_masks2:                                                                                                                                                                                   
                         w.grad[locked_masks2[n]] = 0.0
-                    '''elif (w.grad is None) and (epoch > 5): 
-                        print('grad: ', w.grad)
-                        print('n: ', n)
-                        #print('mask: ', locked_masks2[n])
-                        #print(w.grad[locked_masks2[n]])'''
                 optimizer_prior.step()
-                optimizer_prior.zero_grad()  # zero the gradient buffer
-
+                optimizer_prior.zero_grad() 
                 running_loss_prior += loss_prior.item()
         else:
             running_loss_prior = 0 
@@ -181,13 +153,7 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                     loss.backward()
                 else: 
                     loss.backward()
-
-                #torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=2.0, norm_type=2)
                 optimizer.step()
-                '''
-                if ((epoch+1)%10==0):
-                    plot_grad_flow(net.named_parameters())
-                '''
                 optimizer.zero_grad()  
                 running_loss += loss.item()   
 
@@ -198,9 +164,6 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
 
         print('training:', 'epoch: ', str(epoch+1),' loss: ', str(running_loss), '-- aux loss: ', str(running_loss_prior))    
         
-
-
-
         if ((epoch+1)%10==0):
             running_loss_val = 0.0 
             for i, (star, labels) in enumerate(val_loader):      
@@ -222,6 +185,8 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                 print('trigger times:', trigger_times)
                 if trigger_times >= patience:
                     print('Early stopping!\nStart to test process.')
+                    id_model = str(model_number)+'_'+str(aux_loss_activated)+'_'+ str(size)
+                    torch.save({'model'+str(id_model): net.state_dict()}, 'model_'+str(id_model) +'.pt')
                     return hist_val, hist_train, hist_prior
             else:
                 print('trigger times: 0')
@@ -233,28 +198,22 @@ def train(net, train_loader, train_loader_prior, val_loader, test_loader, EPS1, 
                         print('sum mask1 - L1 (aux): ', str(locked_masks['fc1.weight'].sum()))
                         print('sum mask1 - L2 (aux): ', str(locked_masks['fc2.weight'].sum()))
                         print('sum mask1 - L3 (aux): ', str(locked_masks['fc3.weight'].sum()))
-
+    id_model = str(model_number)+'_'+str(aux_loss_activated)+'_'+ str(size)
+    torch.save({'model'+str(id_model): net.state_dict()}, 'model_'+str(id_model) +'.pt')
     return hist_val, hist_train, hist_prior
 
 def get_results(net, data, input_size):
-    correct = 0
-    total = 0
     target_true=0
     predicted_true=0
     correct_true=0
     for star, labels in data:
         light_curve = Variable(star.view(-1, input_size)).cuda()
         outputs, _, _ = net(light_curve)
-        #_, predicted = torch.max(outputs.data, 1)
-        #total += labels.size(0)
-        #correct += (predicted.cpu() == labels.long()).sum()
         predicted_classes = torch.argmax(outputs.cpu(), dim=1) == 1
         target_classes = labels.data
         target_true += torch.sum(target_classes == 1).float().numpy()
         predicted_true += torch.sum(predicted_classes).float().numpy()
         correct_true += torch.sum(target_classes + predicted_classes.float() == 2).float()
-
-
     recall = correct_true / target_true
     precision = correct_true / (predicted_true+10e-10)
     f1_score = 2 * precision * recall / (precision + recall)
@@ -264,18 +223,12 @@ def get_results(net, data, input_size):
     print(precision)
     print('f1_score')
     print(f1_score)
-
-
-
-
     print('Accuracy of the network on test objects: %d %%' % (100. * precision))
     acc = 100.*precision
     print(np.asarray(acc))
     return np.asarray(acc), np.asarray(recall), np.asarray(f1_score)
 
 def get_results_prob(net, data, input_size):
-    correct = 0
-    total = 0
     pred_prob = []
     labels_gt = []
     for star, labels in data:

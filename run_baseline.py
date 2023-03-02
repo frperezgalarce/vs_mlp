@@ -33,14 +33,13 @@ for epsilon in [0.2]:
     for batch_size in [256]:
         for hidden_size in [100]:
             for EPS1 in [0.025]:
-                for n in [5000, 10000, 50000]:
+                for n in [50000]:
                     for aux_loss_activated in [False]:
                         for opt in [2]:
                             for t in range(30):
                                 train_dataset, test_dataset = ut.load_files(dataset=1)
                                 input_size = train_dataset.shape[1]-1
                                 train_dataset, test_dataset = ut.delete_outliers(train_dataset, test_dataset)
-                                
                                 if n < 50000:
                                     train_dataset = ut.down_sampling(train_dataset)
                                     train_dataset = train_dataset.sample(n)
@@ -71,19 +70,17 @@ for epsilon in [0.2]:
                                     print(train_dataset_prior.columns)
 
 
+                                    train_dataset_prior, val_dataset_prior = train_test_split(data_prior, test_size=0.2)
                                     _, _, train_target_prior, train_loader_prior = ut.get_tensors(train_dataset_prior, batch_size)
-                                    _, _, val_target_prior, val_loader_prior     = ut.get_tensors(val_dataset_prior, batch_size)
                                     _, _, train_target, train_loader             = ut.get_tensors(train_dataset, batch_size)
-                                    _, _, train_target_pred, train_loader_pred   = ut.get_tensors(train_dataset_pred, batch_size)
                                     _, _, val_target, val_loader                 = ut.get_tensors(val_dataset_prior, batch_size)
                                     _, _, test_target, test_loader               = ut.get_tensors(test_dataset, batch_size)
-                                    _, _, test_target_pred, test_loader_pred     = ut.get_tensors(test_dataset_pred, batch_size)
 
                                     net = Net(input_size, hidden_size, hidden_size, num_classes)
                                     net.cuda()
 
                                     hist_val, hist_train, _ = nn.train(net, train_loader, train_loader_prior, val_loader, test_loader,
-                                    EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated)
+                                    EPS1, learning_rate, input_size, aux_loss_activated=aux_loss_activated, model_number=t, size=n)
 
                                     acc_train, recall_train, f1_train = nn.get_results(net, train_loader, input_size)
                                     acc_test, recall_test, f1_test  = nn.get_results(net, test_loader, input_size)
@@ -92,7 +89,7 @@ for epsilon in [0.2]:
                                     results.append([acc_train, acc_test,recall_train, recall_test, f1_train, f1_test, roc_train, roc_test, epsilon, batch_size, hidden_size, aux_loss_activated, EPS1, n, opt])
                                     pd.DataFrame(results, columns=['acc_train', 'acc_test','recall_train', 'recall_test','f1_train', 'f1_test', 
                                                                    'roc_train', 'roc_test', 'epsilon', 'batch_size', 'hidden_size',
-                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('test.csv')
+                                     'aux_loss_activated', 'EPS1', 'n', 'opt']).to_csv('13_01_2023_baseline.csv')
                                 except Exception as error:
                                     print(error) 
                                     print(str(epsilon)+"-"+str(batch_size)+"-"+str(hidden_size)+"-"+str(aux_loss_activated)+"-"+str(EPS1))
