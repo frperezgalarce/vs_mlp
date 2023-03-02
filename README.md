@@ -1,4 +1,4 @@
-# vs_mlp
+# Informative regularization for a multi-layer perceptron RR Lyrae classifier under data shif
 
 In recent decades, machine learning has provided valuable models and algorithms for processing
 and extracting knowledge from time-series surveys. Different classifiers have been proposed and
